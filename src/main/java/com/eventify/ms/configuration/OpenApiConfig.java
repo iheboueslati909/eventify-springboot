@@ -1,0 +1,23 @@
+package com.eventify.ms.configuration;
+
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.info.Contact;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class OpenApiConfig {
+
+    @Bean
+    public OpenAPI festivalAuthOpenAPI() {
+        return new OpenAPI()
+                .info(new Info()
+                        .title("uth API Template")
+                        .description("JWT-based authentication and authorization API Template")
+                        .version("1.0.0")
+                        .contact(new Contact()
+                                .name("Backend team")
+                                .email("oueslatiiheb909@gmail.com")));
+    }
+}
