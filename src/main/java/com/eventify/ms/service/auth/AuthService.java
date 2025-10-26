@@ -11,6 +11,7 @@ import org.springframework.security.core.Authentication;
 import com.eventify.ms.dto.auth.AuthResponse;
 import com.eventify.ms.dto.auth.LoginRequest;
 import com.eventify.ms.dto.auth.RegisterRequest;
+import com.eventify.ms.enums.Role;
 import com.eventify.ms.model.Member;
 import com.eventify.ms.model.auth.User;
 import com.eventify.ms.repository.auth.UserRepository;
@@ -41,6 +42,7 @@ public class AuthService {
         User user = new User();
         user.setEmail(request.email());
         user.setPasswordHash(passwordEncoder.encode(request.password()));
+        user.setRole(Role.USER);
 
         // Create Member
         Member member = new Member();
@@ -48,9 +50,9 @@ public class AuthService {
         member.setLastName(request.lastName());
         member.setEmail(request.email());
 
-        user.setMember(member); // handles both directions
+        user.setMember(member);
         member.setUser(user);
-        userRepository.save(user); // cascades save to member
+        userRepository.save(user);
 
         // JWT tokens
         String accessToken = jwtService.generateToken(user);
