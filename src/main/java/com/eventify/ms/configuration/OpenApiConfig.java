@@ -13,7 +13,7 @@ public class OpenApiConfig {
     public OpenAPI festivalAuthOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("uth API Template")
+                        .title("Eventify API")
                         .description("JWT-based authentication and authorization API Template")
                         .version("1.0.0")
                         .contact(new Contact()
