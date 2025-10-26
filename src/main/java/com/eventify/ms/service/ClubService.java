@@ -5,6 +5,8 @@ import com.eventify.ms.model.Club;
 import com.eventify.ms.model.Member;
 import com.eventify.ms.repository.ClubRepository;
 import com.eventify.ms.repository.MemberRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,90 +24,94 @@ public class ClubService {
         this.memberRepository = memberRepository;
     }
 
-    // CREATE
     @Transactional
     public UUID createClub(CreateClubRequest request) {
-        validateClubRequest(request.name(), request.address(), request.capacity(), request.ownerMemberIds());
-
-        List<Member> owners = memberRepository.findAllById(request.ownerMemberIds());
-        if (owners.isEmpty()) throw new IllegalArgumentException("No valid owner members found");
+        Set<UUID> ownerIds = request.ownerMemberIds();
+        List<Member> owners = memberRepository.findAllById(ownerIds);
+        
+        if (owners.size() != ownerIds.size()) {
+            Set<UUID> foundIds = owners.stream()
+                .map(Member::getId)
+                .collect(Collectors.toSet());
+            Set<UUID> missingIds = new HashSet<>(ownerIds);
+            missingIds.removeAll(foundIds);
+            throw new IllegalArgumentException("Owner members not found: " + missingIds);
+        }
 
         Club club = Club.builder()
                 .name(request.name())
                 .address(request.address())
                 .capacity(request.capacity())
-                .isDeleted(false)
                 .owners(new HashSet<>(owners))
                 .build();
 
-        clubRepository.save(club);
+        club = clubRepository.save(club);
         return club.getId();
-    }
+    }   
 
-    // READ ALL
     @Transactional(readOnly = true)
-    public List<ClubResponse> getAllClubs() {
-        return clubRepository.findAll().stream()
-                .filter(c -> !c.isDeleted())
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public Page<ClubResponse> getAllClubs(Pageable pageable) {
+        // Use query with JOIN FETCH to avoid N+1
+        Page<Club> clubs = clubRepository.findAllActiveWithOwners(pageable);
+        return clubs.map(this::mapToResponse);
     }
 
-    // READ BY ID
     @Transactional(readOnly = true)
     public ClubResponse getClubById(UUID id) {
-        Club club = clubRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Club not found"));
-        if (club.isDeleted()) throw new IllegalArgumentException("Club is deleted");
+        // Single query with fetch join
+        Club club = clubRepository.findByIdWithOwners(id)
+                .orElseThrow(() -> new NoSuchElementException("Club not found with id: " + id));
+        
+        if (club.isDeleted()) {
+            throw new IllegalStateException("Club is already deleted with id: " + id);
+        }
+        
         return mapToResponse(club);
     }
 
-    // UPDATE
     @Transactional
     public ClubResponse updateClub(UUID id, UpdateClubRequest request) {
-        Club club = clubRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Club not found"));
+        Club club = clubRepository.findByIdWithOwners(id)
+                .orElseThrow(() -> new NoSuchElementException("Club not found with id: " + id));
 
-        validateClubRequest(request.name(), request.address(), request.capacity(), request.ownerMemberIds());
+        if (club.isDeleted()) {
+            throw new IllegalStateException("Club is already deleted with id: " + id);
+        }
 
-        List<Member> owners = request.ownerMemberIds() != null && !request.ownerMemberIds().isEmpty()
-                ? memberRepository.findAllById(request.ownerMemberIds())
-                : new ArrayList<>(club.getOwners());
+        // Verify owners if provided
+        if (request.ownerMemberIds() != null && !request.ownerMemberIds().isEmpty()) {
+            List<Member> owners = memberRepository.findAllById(request.ownerMemberIds());
+            if (owners.size() != request.ownerMemberIds().size()) {
+                throw new IllegalArgumentException("Some owner members not found");
+            }
+            club.setOwners(new HashSet<>(owners));
+        }
 
         club.setName(request.name());
         club.setAddress(request.address());
         club.setCapacity(request.capacity());
-        club.setOwners(new HashSet<>(owners));
-
-        clubRepository.save(club);
+        
         return mapToResponse(club);
     }
 
-    // DELETE (soft delete)
     @Transactional
     public void deleteClub(UUID id) {
         Club club = clubRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Club not found"));
+                .orElseThrow(() -> new NoSuchElementException("Club not found with id: " + id));
+        
+        if (club.isDeleted()) {
+            throw new IllegalStateException("Club is already deleted with id: " + id);
+        }
+        
         club.setDeleted(true);
-        clubRepository.save(club);
-    }
-
-    // --- Helpers ---
-    private void validateClubRequest(String name, String address, Integer capacity, Set<UUID> owners) {
-        if (name == null || name.isBlank())
-            throw new IllegalArgumentException("Club name is required");
-        if (address == null || address.isBlank())
-            throw new IllegalArgumentException("Club address is required");
-        if (capacity == null || capacity <= 0)
-            throw new IllegalArgumentException("Capacity must be positive");
-        if (owners == null || owners.isEmpty())
-            throw new IllegalArgumentException("At least one owner is required");
     }
 
     private ClubResponse mapToResponse(Club club) {
+        // Owners already loaded via fetch join
         Set<UUID> ownerIds = club.getOwners().stream()
                 .map(Member::getId)
                 .collect(Collectors.toSet());
+        
         return new ClubResponse(
                 club.getId(),
                 club.getName(),

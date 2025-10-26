@@ -3,6 +3,11 @@ package com.eventify.ms.controller;
 import com.eventify.ms.dto.club.*;
 import com.eventify.ms.service.ClubService;
 import jakarta.validation.Valid;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,8 +30,10 @@ public class ClubController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ClubResponse>> getAllClubs() {
-        return ResponseEntity.ok(clubService.getAllClubs());
+    public ResponseEntity<Page<ClubResponse>> getAllClubs(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Direction.DESC) 
+            Pageable pageable) {
+        return ResponseEntity.ok(clubService.getAllClubs(pageable));
     }
 
     @GetMapping("/{id}")
