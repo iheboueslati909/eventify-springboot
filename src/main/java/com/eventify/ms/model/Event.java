@@ -2,6 +2,8 @@ package com.eventify.ms.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.GenericGenerator;
 
 import com.eventify.ms.enums.EventStatus;
@@ -48,6 +50,10 @@ public class Event {
 
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
+
+    @Column(nullable = false, updatable = false)
+    @CreationTimestamp
+    private OffsetDateTime createdAt;
 
     @Column(name = "club_id")
     private UUID clubId; // optional

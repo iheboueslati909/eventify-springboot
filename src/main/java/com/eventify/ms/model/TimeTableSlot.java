@@ -2,6 +2,8 @@ package com.eventify.ms.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.GenericGenerator;
 
 import java.time.OffsetDateTime;
@@ -28,6 +30,10 @@ public class TimeTableSlot {
 
     @Column(name = "title")
     private String title; // flattened Title
+    
+    @Column(nullable = false, updatable = false)
+    @CreationTimestamp
+    private OffsetDateTime createdAt;
 
     // artist profiles many-to-many
     @ManyToMany(fetch = FetchType.LAZY)

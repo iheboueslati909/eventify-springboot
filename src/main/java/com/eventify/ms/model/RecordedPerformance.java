@@ -2,6 +2,8 @@ package com.eventify.ms.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.GenericGenerator;
 
 import com.eventify.ms.enums.PerformanceType;
@@ -26,7 +28,8 @@ public class RecordedPerformance {
     @Column(name = "type")
     private PerformanceType type;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(nullable = false, updatable = false)
+    @CreationTimestamp
     private OffsetDateTime createdAt;
 
     @Column(name = "last_modified")

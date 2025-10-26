@@ -2,8 +2,11 @@ package com.eventify.ms.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.GenericGenerator;
 
+import java.time.OffsetDateTime;
 import java.util.*;
 
 @Entity
@@ -21,6 +24,10 @@ public class TimeTable {
 
     @Column(name = "stage_name")
     private String stageName; // flattened Title
+
+    @Column(nullable = false, updatable = false)
+    @CreationTimestamp
+    private OffsetDateTime createdAt;
 
     // slots
     @OneToMany(mappedBy = "timetable", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)

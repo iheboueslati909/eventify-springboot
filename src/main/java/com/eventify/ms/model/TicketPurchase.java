@@ -2,6 +2,8 @@ package com.eventify.ms.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.GenericGenerator;
 
 import com.eventify.ms.enums.TicketPurchaseStatus;
@@ -37,6 +39,10 @@ public class TicketPurchase {
 
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
+
+    @Column(nullable = false, updatable = false)
+    @CreationTimestamp
+    private OffsetDateTime createdAt;
 
     // navigations
     @ManyToOne(fetch = FetchType.LAZY)

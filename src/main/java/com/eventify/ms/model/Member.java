@@ -2,11 +2,14 @@ package com.eventify.ms.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.GenericGenerator;
 
 import com.eventify.ms.model.auth.User;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import java.time.OffsetDateTime;
 import java.util.*;
 
 @Entity
@@ -30,6 +33,10 @@ public class Member {
 
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
+
+    @Column(nullable = false, updatable = false)
+    @CreationTimestamp
+    private OffsetDateTime createdAt;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, unique = true)

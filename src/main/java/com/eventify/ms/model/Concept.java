@@ -2,8 +2,11 @@ package com.eventify.ms.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.GenericGenerator;
 
+import java.time.OffsetDateTime;
 import java.util.*;
 
 @Entity
@@ -27,6 +30,10 @@ public class Concept {
 
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
+
+    @Column(nullable = false, updatable = false)
+    @CreationTimestamp
+    private OffsetDateTime createdAt;
 
     @ElementCollection(targetClass = com.eventify.ms.enums.MusicGenre.class, fetch = FetchType.LAZY)
     @CollectionTable(name = "concept_genres", joinColumns = @JoinColumn(name = "concept_id"))
