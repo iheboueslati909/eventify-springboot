@@ -3,10 +3,7 @@ package com.eventify.ms.model;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import java.math.BigDecimal;
-import java.time.OffsetDateTime;
 import java.util.*;
 
 @Entity
