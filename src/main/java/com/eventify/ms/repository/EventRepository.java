@@ -33,4 +33,11 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
            "LEFT JOIN FETCH s.artistProfiles ap " +
            "WHERE ap.id = :artistId AND e.isDeleted = false")
     List<Event> findByArtistId(@Param("artistId") UUID artistId);
+
+       @Query("SELECT DISTINCT e FROM Event e " +
+                 "LEFT JOIN FETCH e.timetables t " +
+                 "LEFT JOIN FETCH t.slots s " +
+                 "LEFT JOIN FETCH s.artistProfiles ap " +
+                 "WHERE e.conceptId = :conceptId AND e.isDeleted = false")
+       List<Event> findByConceptIdWithRelationships(@Param("conceptId") UUID conceptId);
 }

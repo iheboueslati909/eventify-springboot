@@ -11,10 +11,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import com.eventify.ms.dto.event.ArtistTimeConflict;
 
 @Service
@@ -34,6 +35,67 @@ public class EventService {
         this.timeTableSlotRepository = timeTableSlotRepository;
         this.artistProfileRepository = artistProfileRepository;
         this.conceptRepository = conceptRepository;
+    }
+
+    // --- Read operations ---
+    @Transactional(readOnly = true)
+    public Page<Event> getAllEvents(Pageable pageable) {
+        return eventRepository.findAllActiveWithTimeTables(pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Event getEventById(UUID id) {
+        return eventRepository.findByIdWithRelationships(id)
+                .orElseThrow(() -> new NoSuchElementException("Event not found with id: " + id));
+    }
+
+    @Transactional(readOnly = true)
+    public List<Event> getEventsByConcept(UUID conceptId) {
+        if (!conceptRepository.existsById(conceptId)) {
+            throw new NoSuchElementException("Concept not found with id: " + conceptId);
+        }
+        return eventRepository.findByConceptIdWithRelationships(conceptId);
+    }
+
+    // --- Update ---
+    @Transactional
+    public UUID updateEvent(UUID id, CreateEventRequest request) {
+        Event event = eventRepository.findByIdWithRelationships(id)
+                .orElseThrow(() -> new NoSuchElementException("Event not found with id: " + id));
+
+        // Validate concept exists
+        if (!conceptRepository.existsById(request.conceptId())) {
+            throw new NoSuchElementException("Concept not found with id: " + request.conceptId());
+        }
+
+        // Validate date range
+        validateDateRange(request.startDate(), request.endDate());
+
+        // Update scalar fields
+        event.setTitle(request.title());
+        event.setDescription(request.description());
+        event.setStartDate(request.startDate());
+        event.setEndDate(request.endDate());
+        event.setLocation(request.location());
+        event.setType(request.type());
+        event.setConceptId(request.conceptId());
+
+        // Replace timetables: clear and create new ones
+        event.getTimetables().clear();
+        List<TimeTable> timetables = createTimeTables(request, event);
+        event.setTimetables(timetables);
+
+        eventRepository.save(event);
+        return event.getId();
+    }
+
+    // --- Delete (soft) ---
+    @Transactional
+    public void deleteEvent(UUID id) {
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Event not found with id: " + id));
+    event.setDeleted(true);
+        eventRepository.save(event);
     }
 
 @Transactional
