@@ -2,11 +2,14 @@ package com.eventify.ms.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.GenericGenerator;
 
 import com.eventify.ms.enums.MusicGenre;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import java.time.OffsetDateTime;
 import java.util.*;
 
 @Entity
@@ -31,6 +34,10 @@ public class ArtistProfile {
 
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
+
+    @Column(nullable = false, updatable = false)
+    @CreationTimestamp
+    private OffsetDateTime createdAt;
 
     @ElementCollection(targetClass = MusicGenre.class, fetch = FetchType.LAZY)
     @CollectionTable(name = "artist_profile_genres", joinColumns = @JoinColumn(name = "artist_profile_id"))

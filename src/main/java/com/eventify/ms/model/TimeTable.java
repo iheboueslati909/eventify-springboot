@@ -19,9 +19,6 @@ public class TimeTable {
     @Column(columnDefinition = "uuid", updatable = false, nullable = false)
     private UUID id;
 
-    @Column(name = "event_id", nullable = false)
-    private UUID eventId;
-
     @Column(name = "stage_name")
     private String stageName; // flattened Title
 
@@ -35,6 +32,6 @@ public class TimeTable {
 
     // convenience backref to event (optional)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_id", insertable = false, updatable = false)
+    @JoinColumn(name = "event_id", nullable = false)
     private Event event;
 }

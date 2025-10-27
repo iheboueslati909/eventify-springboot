@@ -19,9 +19,6 @@ public class TimeTableSlot {
     @Column(columnDefinition = "uuid", updatable = false, nullable = false)
     private UUID id;
 
-    @Column(name = "timetable_id", nullable = false)
-    private UUID timetableId;
-
     @Column(name = "start_time", nullable = false)
     private OffsetDateTime startTime;
 
@@ -45,6 +42,6 @@ public class TimeTableSlot {
     private Set<ArtistProfile> artistProfiles = new HashSet<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "timetable_id", insertable = false, updatable = false)
+    @JoinColumn(name = "timetable_id", updatable = false)
     private TimeTable timetable;
 }
