@@ -54,7 +54,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, HttpServletRequest request) {
         ex.printStackTrace(); // Optional: log stack trace
-        return buildErrorResponse("An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR, request.getRequestURI());
+        return buildErrorResponse("An unexpected error occurred :" + ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, request.getRequestURI());
     }
 
     // --- Helper method ---
