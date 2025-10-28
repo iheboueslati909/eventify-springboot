@@ -8,6 +8,7 @@ import org.hibernate.annotations.GenericGenerator;
 
 import com.eventify.ms.enums.TicketPurchaseStatus;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -21,33 +22,32 @@ public class TicketPurchase {
     @Column(columnDefinition = "uuid", updatable = false, nullable = false)
     private UUID id;
 
-    @Column(name = "ticket_id", nullable = false)
-    private UUID ticketId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ticket_id", nullable = false)
+    private Ticket ticket;
 
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
-    @Column(name = "payment_id")
-    private UUID paymentId;
+    @Column(name = "quantity", nullable = false)
+    private Integer quantity;
+
+    @Column(name = "total_price", nullable = false)
+    private BigDecimal totalPrice;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private TicketPurchaseStatus status;
 
-    @Column(name = "purchased_at", nullable = false)
-    private OffsetDateTime purchasedAt;
+    @Column(name = "payment_id")
+    private String paymentId;
 
-    @Column(name = "quantity", nullable = false)
-    private Integer quantity;
+    @Column(name = "checkout_url")
+    private String checkoutUrl;
 
     @Column(nullable = false, updatable = false)
     @CreationTimestamp
     private OffsetDateTime createdAt;
-
-    // navigations
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ticket_id", insertable = false, updatable = false)
-    private Ticket ticket;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", insertable = false, updatable = false)
