@@ -16,6 +16,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import com.eventify.ms.dto.event.EventResponse;
 import com.eventify.ms.dto.event.ArtistTimeConflict;
 
 @Service
@@ -39,22 +40,26 @@ public class EventService {
 
     // --- Read operations ---
     @Transactional(readOnly = true)
-    public Page<Event> getAllEvents(Pageable pageable) {
-        return eventRepository.findAllActiveWithTimeTables(pageable);
+    public Page<EventResponse> getAllEvents(Pageable pageable) {
+        return eventRepository.findAllActiveWithTimeTables(pageable).map(this::mapToResponse);
     }
 
     @Transactional(readOnly = true)
-    public Event getEventById(UUID id) {
-        return eventRepository.findByIdWithRelationships(id)
+    public EventResponse getEventById(UUID id) {
+        Event event = eventRepository.findByIdWithRelationships(id)
                 .orElseThrow(() -> new NoSuchElementException("Event not found with id: " + id));
+        return mapToResponse(event);
     }
 
     @Transactional(readOnly = true)
-    public List<Event> getEventsByConcept(UUID conceptId) {
+    public List<EventResponse> getEventsByConcept(UUID conceptId) {
         if (!conceptRepository.existsById(conceptId)) {
             throw new NoSuchElementException("Concept not found with id: " + conceptId);
         }
-        return eventRepository.findByConceptIdWithRelationships(conceptId);
+        return eventRepository.findByConceptIdWithRelationships(conceptId)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
     }
 
     // --- Update ---
@@ -94,11 +99,34 @@ public class EventService {
     public void deleteEvent(UUID id) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Event not found with id: " + id));
-    event.setDeleted(true);
+        event.setDeleted(true);
         eventRepository.save(event);
     }
 
-@Transactional
+    private EventResponse mapToResponse(Event event) {
+        List<UUID> ttIds = event.getTimetables().stream()
+                .map(t -> t.getId())
+                .toList();
+        List<UUID> ticketIds = event.getTickets().stream()
+                .map(t -> t.getId())
+                .toList();
+        return new EventResponse(
+                event.getId(),
+                event.getTitle(),
+                event.getDescription(),
+                event.getStartDate(),
+                event.getEndDate(),
+                event.getLocation(),
+                event.getType(),
+                event.getStatus(),
+                event.getConceptId(),
+                event.isDeleted(),
+                event.getCreatedAt(),
+                event.getClubId(),
+                ttIds,
+                ticketIds
+        );
+    }@Transactional
 public UUID createEvent(CreateEventRequest request) {
     // Validate concept exists
     if (!conceptRepository.existsById(request.conceptId())) {
