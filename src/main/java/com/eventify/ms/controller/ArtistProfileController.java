@@ -26,7 +26,7 @@ public class ArtistProfileController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createArtistProfile(@Valid @RequestBody CreateArtistProfileRequest request) {
+    public ResponseEntity<Map<String, UUID>> createArtistProfile(@Valid @RequestBody CreateArtistProfileRequest request) {
         UUID id = artistProfileService.createArtistProfile(request);
         return ResponseEntity.status(201).body(Map.of("id", id));
     }
@@ -56,7 +56,7 @@ public class ArtistProfileController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteArtistProfile(@PathVariable UUID id) {
+    public ResponseEntity<Void> deleteArtistProfile(@PathVariable UUID id) {
         artistProfileService.deleteArtistProfile(id);
         return ResponseEntity.noContent().build();
     }

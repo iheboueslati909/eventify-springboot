@@ -24,7 +24,7 @@ public class ClubController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createClub(@Valid @RequestBody CreateClubRequest request) {
+    public ResponseEntity<Map<String, UUID>> createClub(@Valid @RequestBody CreateClubRequest request) {
         UUID clubId = clubService.createClub(request);
         return ResponseEntity.status(201).body(Map.of("id", clubId));
     }
@@ -50,7 +50,7 @@ public class ClubController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteClub(@PathVariable UUID id) {
+    public ResponseEntity<Void> deleteClub(@PathVariable UUID id) {
         clubService.deleteClub(id);
         return ResponseEntity.noContent().build();
     }

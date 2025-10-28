@@ -1,7 +1,7 @@
 package com.eventify.ms.controller;
 
 import com.eventify.ms.dto.event.CreateEventRequest;
-import com.eventify.ms.model.Event;
+import com.eventify.ms.dto.event.EventResponse;
 import com.eventify.ms.service.EventService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -24,40 +24,42 @@ public class EventController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createEvent(@Valid @RequestBody CreateEventRequest request) {
+    public ResponseEntity<Map<String, UUID>> createEvent(@Valid @RequestBody CreateEventRequest request) {
         UUID eventId = eventService.createEvent(request);
         return ResponseEntity.status(201).body(Map.of("id", eventId));
     }
 
     @GetMapping
-    public ResponseEntity<?> getAllEvents(
+    public ResponseEntity<Page<EventResponse>> getAllEvents(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        Page<Event> events = eventService.getAllEvents(PageRequest.of(page, size));
+        Page<EventResponse> events = eventService.getAllEvents(PageRequest.of(page, size));
         return ResponseEntity.ok(events);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getEventById(@PathVariable UUID id) {
-        Event event = eventService.getEventById(id);
+    public ResponseEntity<EventResponse> getEventById(@PathVariable UUID id) {
+        EventResponse event = eventService.getEventById(id);
         return ResponseEntity.ok(event);
     }
 
     @GetMapping("/concept/{conceptId}")
-    public ResponseEntity<?> getEventsByConcept(@PathVariable UUID conceptId) {
-        List<Event> events = eventService.getEventsByConcept(conceptId);
+    public ResponseEntity<List<EventResponse>> getEventsByConcept(@PathVariable UUID conceptId) {
+        List<EventResponse> events = eventService.getEventsByConcept(conceptId);
         return ResponseEntity.ok(events);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateEvent(@PathVariable UUID id, @Valid @RequestBody CreateEventRequest request) {
+    public ResponseEntity<Map<String, UUID>> updateEvent(@PathVariable UUID id, @Valid @RequestBody CreateEventRequest request) {
         UUID updatedId = eventService.updateEvent(id, request);
         return ResponseEntity.ok(Map.of("id", updatedId));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteEvent(@PathVariable UUID id) {
+    public ResponseEntity<Void> deleteEvent(@PathVariable UUID id) {
         eventService.deleteEvent(id);
         return ResponseEntity.noContent().build();
     }
+
+
 }

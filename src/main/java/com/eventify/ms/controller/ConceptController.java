@@ -26,7 +26,7 @@ public class ConceptController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createConcept(@Valid @RequestBody CreateConceptRequest request) {
+    public ResponseEntity<Map<String, UUID>> createConcept(@Valid @RequestBody CreateConceptRequest request) {
         UUID id = conceptService.createConcept(request);
         return ResponseEntity.status(201).body(Map.of("id", id));
     }
@@ -49,7 +49,7 @@ public class ConceptController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteConcept(@PathVariable UUID id) {
+    public ResponseEntity<Void> deleteConcept(@PathVariable UUID id) {
         conceptService.deleteConcept(id);
         return ResponseEntity.noContent().build();
     }

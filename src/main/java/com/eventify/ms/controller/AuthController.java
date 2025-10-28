@@ -44,7 +44,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<Object> register(@Valid @RequestBody RegisterRequest request) {
     if (request.email() == null || request.password() == null) {
         return ResponseEntity.badRequest().body("Email and password must be provided");
     }
@@ -64,7 +64,7 @@ public class AuthController {
 
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<Object> login(@Valid @RequestBody LoginRequest request) {
         try {
             AuthResponse response = authService.loginUser(request);
             return ResponseEntity.ok(response);
