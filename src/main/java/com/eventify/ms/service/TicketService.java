@@ -2,6 +2,8 @@ package com.eventify.ms.service;
 
 import com.eventify.ms.dto.ticket.CreateTicketRequest;
 import com.eventify.ms.dto.ticket.TicketResponse;
+import com.eventify.ms.model.Event;
+import com.eventify.ms.model.Member;
 import com.eventify.ms.model.Ticket;
 import com.eventify.ms.repository.TicketRepository;
 import com.eventify.ms.repository.EventRepository;
@@ -31,18 +33,16 @@ public class TicketService {
     @Transactional
     public UUID createTicket(CreateTicketRequest request) {
         // Validate event exists
-        if (!eventRepository.existsById(request.eventId())) {
-            throw new NoSuchElementException("Event not found with id: " + request.eventId());
-        }
+        Event event = eventRepository.findById(request.eventId())
+                .orElseThrow(() -> new NoSuchElementException("Event not found with id: " + request.eventId()));
 
-        // Validate creator exists
-        if (!memberRepository.existsById(request.creatorId())) {
-            throw new NoSuchElementException("Creator not found with id: " + request.creatorId());
-        }
+
+        Member creator = memberRepository.findById(request.creatorId())
+                .orElseThrow(() -> new NoSuchElementException("Creator not found with id: " + request.creatorId()));
 
         Ticket ticket = Ticket.builder()
-                .eventId(request.eventId())
-                .creatorId(request.creatorId())
+                .event(event)
+                .creator(creator)
                 .price(request.price())
                 .name(request.name())
                 .quantity(request.quantity())
@@ -72,16 +72,19 @@ public class TicketService {
                 .orElseThrow(() -> new NoSuchElementException("Ticket not found with id: " + id));
 
         // If event/creator changed, validate existence
-        if (!ticket.getEventId().equals(request.eventId()) && !eventRepository.existsById(request.eventId())) {
+        if (!ticket.getEvent().getId().equals(request.eventId()) && !eventRepository.existsById(request.eventId())) {
             throw new NoSuchElementException("Event not found with id: " + request.eventId());
         }
 
-        if (!ticket.getCreatorId().equals(request.creatorId()) && !memberRepository.existsById(request.creatorId())) {
+        if (!ticket.getCreator().getId().equals(request.creatorId()) && !memberRepository.existsById(request.creatorId())) {
             throw new NoSuchElementException("Creator not found with id: " + request.creatorId());
         }
 
-        ticket.setEventId(request.eventId());
-        ticket.setCreatorId(request.creatorId());
+        Member creator = memberRepository.findById(request.creatorId())
+                .orElseThrow(() -> new NoSuchElementException("Creator not found with id: " + request.creatorId()));
+
+        ticket.setEvent(ticket.getEvent());
+        ticket.setCreator(creator);
         ticket.setPrice(request.price());
         ticket.setName(request.name());
         ticket.setQuantity(request.quantity());
@@ -102,8 +105,8 @@ public class TicketService {
     private TicketResponse mapToResponse(Ticket ticket) {
         return new TicketResponse(
                 ticket.getId(),
-                ticket.getEventId(),
-                ticket.getCreatorId(),
+                ticket.getEvent().getId(),
+                ticket.getCreator().getId(),
                 ticket.getPrice(),
                 ticket.getName(),
                 ticket.getQuantity(),

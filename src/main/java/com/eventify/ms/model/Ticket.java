@@ -24,12 +24,6 @@ public class Ticket {
     @Column(columnDefinition = "uuid", updatable = false, nullable = false)
     private UUID id;
 
-    @Column(name = "event_id", nullable = false)
-    private UUID eventId;
-
-    @Column(name = "creator_id", nullable = false)
-    private UUID creatorId;
-
     @Column(name = "price", precision = 19, scale = 4)
     private BigDecimal price;
 
