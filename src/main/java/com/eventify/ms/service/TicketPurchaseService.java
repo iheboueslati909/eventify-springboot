@@ -74,34 +74,30 @@ public class TicketPurchaseService {
         // 5️⃣ Get JWT of current user (to authenticate with your payment gateway)
         String jwtToken = securityUtils.getCurrentUserJwt();
 
-        // PaymentSessionResponse paymentSession = paymentService.initiatePaymentSession(
-        //         jwtToken,
-        //         ticketPurchase.getId(),
-        //         request.userId(),
-        //         ticketPurchase.getTotalPrice(),
-        //         "usd",
-        //         request.paymentMethod()
-        // );
+        PaymentSessionResponse paymentSession = paymentService.initiatePaymentSession(
+                jwtToken,
+                ticketPurchase.getId(),
+                request.userId(),
+                ticketPurchase.getTotalPrice(),
+                "usd",
+                request.paymentMethod()
+        );
 
-        // if (paymentSession == null || paymentSession.paymentId() == null) {
-        //     ticketPurchase.setStatus(TicketPurchaseStatus.CANCELLED);
-        //     ticketPurchaseRepository.save(ticketPurchase);
-        //     throw new IllegalStateException("Payment initiation failed for ticket purchase: " + ticketPurchase.getId());
-        // }
+        if (paymentSession == null || paymentSession.paymentId() == null) {
+            ticketPurchase.setStatus(TicketPurchaseStatus.CANCELLED);
+            ticketPurchaseRepository.save(ticketPurchase);
+            throw new IllegalStateException("Payment initiation failed for ticket purchase: " + ticketPurchase.getId());
+        }
 
-        // ticketPurchase.setPaymentId(paymentSession.paymentId());
-        // ticketPurchase.setCheckoutUrl(paymentSession.checkoutUrl());
-        // ticketPurchaseRepository.save(ticketPurchase);
-
-                ticketPurchase.setPaymentId("e656ae02-c3c8-4300-9aac-da622f32d437");
-        ticketPurchase.setCheckoutUrl("e656ae02-c3c8-4300-9aac-da622f32d437");
+        ticketPurchase.setPaymentId(paymentSession.paymentId());
+        ticketPurchase.setCheckoutUrl(paymentSession.checkoutUrl());
         ticketPurchaseRepository.save(ticketPurchase);
 
         // 9️⃣ Return response
         return new CreateTicketPurchaseResponse(
                 ticketPurchase.getId(),
-                "e656ae02-c3c8-4300-9aac-da622f32d437",
-                "e656ae02-c3c8-4300-9aac-da622f32d4387"
+                paymentSession.checkoutUrl(),
+                paymentSession.paymentId()
         );
     }
 
