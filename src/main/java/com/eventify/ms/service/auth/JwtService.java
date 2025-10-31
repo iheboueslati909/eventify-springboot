@@ -107,7 +107,7 @@ public class JwtService {
         }
 
         try {
-            Claims claims = Jwts.parserBuilder()
+            Claims claims = Jwts.parser()
                     .setSigningKey(signingKey)
                     .build()
                     .parseClaimsJws(token)
