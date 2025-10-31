@@ -26,9 +26,6 @@ public class TicketPurchase {
     @JoinColumn(name = "ticket_id", nullable = false)
     private Ticket ticket;
 
-    @Column(name = "user_id", nullable = false)
-    private UUID userId;
-
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
 
@@ -50,6 +47,6 @@ public class TicketPurchase {
     private OffsetDateTime createdAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", insertable = false, updatable = false)
+    @JoinColumn(name = "user_id", updatable = false)
     private Member user;
 }
