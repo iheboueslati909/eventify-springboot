@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,10 +27,18 @@ public class TicketPurchaseController {
     }
 
     @PostMapping
-    public ResponseEntity<CreateTicketPurchaseResponse> createTicketPurchase(@Valid @RequestBody CreateTicketPurchaseRequest request) {
+    public ResponseEntity<?> createTicketPurchase(@Valid @RequestBody CreateTicketPurchaseRequest request) {
         CreateTicketPurchaseResponse response = ticketPurchaseService.createTicketPurchase(request);
-        return ResponseEntity.status(201).body(response);
+
+        if (response.checkoutUrl() == null) {
+            return ResponseEntity
+                    .status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of("message", "Payment service is unavailable"));
+        }
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+
 
     @GetMapping
     public ResponseEntity<Page<TicketPurchaseResponse>> getAllTicketPurchases(
