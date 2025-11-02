@@ -2,6 +2,7 @@ package com.eventify.ms.controller;
 
 import com.eventify.ms.dto.ticket.CreateTicketRequest;
 import com.eventify.ms.dto.ticket.TicketResponse;
+import com.eventify.ms.dto.ticket.UpdateTicketRequest;
 import com.eventify.ms.service.TicketService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -42,7 +43,7 @@ public class TicketController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<TicketResponse> updateTicket(@PathVariable UUID id, @Valid @RequestBody CreateTicketRequest request) {
+    public ResponseEntity<TicketResponse> updateTicket(@PathVariable UUID id, @Valid @RequestBody UpdateTicketRequest request) {
         TicketResponse resp = ticketService.updateTicket(id, request);
         return ResponseEntity.ok(resp);
     }

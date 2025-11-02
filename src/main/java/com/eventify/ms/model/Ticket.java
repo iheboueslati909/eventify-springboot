@@ -34,9 +34,11 @@ public class Ticket {
     private Integer quantity;
 
     @Column(name = "reserved_count")
+    @Builder.Default
     private Integer reservedCount = 0;
 
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     @Column(name = "currency", nullable = false)
     private Currency currency = Currency.USD;
 
@@ -53,5 +55,6 @@ public class Ticket {
     private Member creator;
 
     @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
     private List<TicketPurchase> ticketPurchases = new ArrayList<>();
 }
