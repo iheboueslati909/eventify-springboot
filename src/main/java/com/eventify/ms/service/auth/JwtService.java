@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import com.eventify.ms.exception.InvalidTokenException;
 import com.eventify.ms.model.auth.User;
 
 import io.jsonwebtoken.Claims;
@@ -142,9 +143,5 @@ public class JwtService {
         }
     }
 
-    public static class InvalidTokenException extends RuntimeException {
-        public InvalidTokenException(String message) {
-            super(message);
-        }
-    }
+
 }

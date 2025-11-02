@@ -17,11 +17,11 @@ import com.eventify.ms.dto.auth.LoginRequest;
 import com.eventify.ms.dto.auth.RefreshTokenRequest;
 import com.eventify.ms.dto.auth.RefreshTokenResponse;
 import com.eventify.ms.dto.auth.RegisterRequest;
+import com.eventify.ms.exception.InvalidTokenException;
 import com.eventify.ms.model.auth.User;
 import com.eventify.ms.repository.auth.UserRepository;
 import com.eventify.ms.service.auth.AuthService;
 import com.eventify.ms.service.auth.JwtService;
-import com.eventify.ms.service.auth.JwtService.InvalidTokenException;
 
 import jakarta.validation.Valid;
 
