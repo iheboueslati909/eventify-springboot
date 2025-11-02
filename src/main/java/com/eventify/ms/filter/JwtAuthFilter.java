@@ -44,7 +44,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        String token = extractToken(request);
+        String token = jwtService.extractToken(request);
         if (token == null) {
             filterChain.doFilter(request, response);
             return;
@@ -63,16 +63,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private String extractToken(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        
-        if (!StringUtils.hasText(authHeader) || !authHeader.startsWith("Bearer ")) {
-            return null;
-        }
 
-        String token = authHeader.substring(7);
-        return StringUtils.hasText(token) ? token : null;
-    }
 
     private void authenticateWithToken(String token, HttpServletRequest request) {
         // Single validation + extraction in one call

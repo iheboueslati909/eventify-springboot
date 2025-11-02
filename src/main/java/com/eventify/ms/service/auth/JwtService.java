@@ -3,6 +3,7 @@ package com.eventify.ms.service.auth;
 import java.security.Key;
 import java.util.Date;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,7 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
 import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -53,9 +55,10 @@ public class JwtService {
         if (user == null || !StringUtils.hasText(user.getEmail())) {
             throw new IllegalArgumentException("User and email must not be null");
         }
-        
+
         return Jwts.builder()
                 .setSubject(user.getEmail())
+                .claim("userId", user.getId().toString())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + ACCESS_TOKEN_EXPIRY))
                 .signWith(signingKey, SignatureAlgorithm.HS256)
@@ -66,7 +69,7 @@ public class JwtService {
         if (user == null || !StringUtils.hasText(user.getEmail())) {
             throw new IllegalArgumentException("User and email must not be null");
         }
-        
+
         return Jwts.builder()
                 .setSubject(user.getEmail())
                 .setIssuedAt(new Date())
@@ -79,16 +82,16 @@ public class JwtService {
         if (user == null || !StringUtils.hasText(user.getEmail())) {
             throw new IllegalArgumentException("User and email must not be null");
         }
-        
+
         Optional<String> email = extractEmail(refreshToken);
         if (email.isEmpty()) {
             throw new InvalidTokenException("Cannot refresh token: token is invalid");
         }
-        
+
         if (!email.get().equals(user.getEmail())) {
             throw new InvalidTokenException("Token email does not match user");
         }
-        
+
         return generateToken(user);
     }
 
@@ -113,15 +116,15 @@ public class JwtService {
                     .build()
                     .parseClaimsJws(token)
                     .getBody();
-            
+
             // Additional validation
             if (!StringUtils.hasText(claims.getSubject())) {
                 log.warn("Token validation failed: missing subject");
                 return Optional.empty();
             }
-            
+
             return Optional.of(claims);
-            
+
         } catch (ExpiredJwtException e) {
             log.debug("Token validation failed: token expired");
             return Optional.empty();
@@ -143,5 +146,33 @@ public class JwtService {
         }
     }
 
+    public Optional<UUID> extractUserId(String token) {
+        return extractAllClaims(token)
+                .flatMap(claims -> {
+                    String userIdStr = claims.get("userId", String.class);
+                    if (!StringUtils.hasText(userIdStr)) {
+                        log.debug("User ID claim is missing in token");
+                        return Optional.empty();
+                    }
+                    try {
+                        UUID userId = UUID.fromString(userIdStr);
+                        return Optional.of(userId);
+                    } catch (IllegalArgumentException e) {
+                        log.warn("Invalid User ID format in token: {}", userIdStr, e);
+                        return Optional.empty();
+                    }
+                });
+    }
+
+    public String extractToken(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+
+        if (!StringUtils.hasText(authHeader) || !authHeader.startsWith("Bearer ")) {
+            return null;
+        }
+
+        String token = authHeader.substring(7);
+        return StringUtils.hasText(token) ? token : null;
+    }
 
 }
