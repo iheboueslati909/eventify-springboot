@@ -3,6 +3,8 @@ package com.eventify.ms.controller;
 import com.eventify.ms.dto.event.CreateEventRequest;
 import com.eventify.ms.dto.event.EventResponse;
 import com.eventify.ms.service.EventService;
+import com.eventify.ms.service.auth.JwtService;
+import com.eventify.ms.exception.InvalidTokenException;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -18,9 +20,11 @@ import java.util.UUID;
 public class EventController {
 
     private final EventService eventService;
+    private final JwtService jwtService;
 
-    public EventController(EventService eventService) {
+    public EventController(EventService eventService, JwtService jwtService) {
         this.eventService = eventService;
+        this.jwtService = jwtService;
     }
 
     @PostMapping
@@ -50,14 +54,27 @@ public class EventController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Map<String, UUID>> updateEvent(@PathVariable UUID id, @Valid @RequestBody CreateEventRequest request) {
-        UUID updatedId = eventService.updateEvent(id, request);
+    public ResponseEntity<Map<String, UUID>> updateEvent(@PathVariable UUID id, @Valid @RequestBody CreateEventRequest request,
+                                                         @RequestHeader("Authorization") String authHeader) {
+        String token = jwtService.extractTokenFromString(authHeader);
+        UUID userId = jwtService.extractUserId(token).orElseThrow(() -> new InvalidTokenException("Invalid token"));
+        UUID updatedId = eventService.updateEvent(id, request, userId);
         return ResponseEntity.ok(Map.of("id", updatedId));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteEvent(@PathVariable UUID id) {
-        eventService.deleteEvent(id);
+    public ResponseEntity<Void> deleteEvent(@PathVariable UUID id, @RequestHeader("Authorization") String authHeader) {
+        String token = jwtService.extractTokenFromString(authHeader);
+        UUID userId = jwtService.extractUserId(token).orElseThrow(() -> new InvalidTokenException("Invalid token"));
+        eventService.deleteEvent(id, userId);
+        return ResponseEntity.noContent().build();
+    }
+    
+    @PostMapping("/{id}/cancel")
+    public ResponseEntity<Void> cancelEvent(@PathVariable UUID id, @RequestHeader("Authorization") String authHeader) {
+        String token = authHeader != null && authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
+        UUID userId = jwtService.extractUserId(token).orElseThrow(() -> new InvalidTokenException("Invalid token"));
+        eventService.cancelEvent(id, userId);
         return ResponseEntity.noContent().build();
     }
 

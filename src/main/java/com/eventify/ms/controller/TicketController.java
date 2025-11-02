@@ -4,6 +4,8 @@ import com.eventify.ms.dto.ticket.CreateTicketRequest;
 import com.eventify.ms.dto.ticket.TicketResponse;
 import com.eventify.ms.dto.ticket.UpdateTicketRequest;
 import com.eventify.ms.service.TicketService;
+import com.eventify.ms.service.auth.JwtService;
+import com.eventify.ms.exception.InvalidTokenException;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -18,9 +20,11 @@ import java.util.UUID;
 public class TicketController {
 
     private final TicketService ticketService;
+    private final JwtService jwtService;
 
-    public TicketController(TicketService ticketService) {
+    public TicketController(TicketService ticketService, JwtService jwtService) {
         this.ticketService = ticketService;
+        this.jwtService = jwtService;
     }
 
     @PostMapping
@@ -43,14 +47,19 @@ public class TicketController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<TicketResponse> updateTicket(@PathVariable UUID id, @Valid @RequestBody UpdateTicketRequest request) {
-        TicketResponse resp = ticketService.updateTicket(id, request);
+    public ResponseEntity<TicketResponse> updateTicket(@PathVariable UUID id, @Valid @RequestBody UpdateTicketRequest request,
+                                                       @RequestHeader("Authorization") String authHeader) {
+        String token = jwtService.extractTokenFromString(authHeader);
+        java.util.UUID userId = jwtService.extractUserId(token).orElseThrow(() -> new InvalidTokenException("Invalid token"));
+        TicketResponse resp = ticketService.updateTicket(id, request, userId);
         return ResponseEntity.ok(resp);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTicket(@PathVariable UUID id) {
-        ticketService.deleteTicket(id);
+    public ResponseEntity<Void> deleteTicket(@PathVariable UUID id, @RequestHeader("Authorization") String authHeader) {
+        String token = jwtService.extractTokenFromString(authHeader);
+        java.util.UUID userId = jwtService.extractUserId(token).orElseThrow(() -> new InvalidTokenException("Invalid token"));
+        ticketService.deleteTicket(id, userId);
         return ResponseEntity.noContent().build();
     }
 }

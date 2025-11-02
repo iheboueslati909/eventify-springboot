@@ -70,7 +70,7 @@ public class TicketService {
     }
 
     @Transactional
-    public TicketResponse updateTicket(UUID id, UpdateTicketRequest request) {
+    public TicketResponse updateTicket(UUID id, UpdateTicketRequest request, java.util.UUID userId) {
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Ticket not found with id: " + id));
 
@@ -97,11 +97,21 @@ public class TicketService {
     }
 
     @Transactional
-    public void deleteTicket(UUID id) {
+    public TicketResponse updateTicket(UUID id, UpdateTicketRequest request) {
+        return updateTicket(id, request, null);
+    }
+
+    @Transactional
+    public void deleteTicket(UUID id, java.util.UUID userId) {
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Ticket not found with id: " + id));
         // Hard delete (no isDeleted field on Ticket model)
         ticketRepository.delete(ticket);
+    }
+
+    @Transactional
+    public void deleteTicket(UUID id) {
+        deleteTicket(id, null);
     }
 
     private TicketResponse mapToResponse(Ticket ticket) {

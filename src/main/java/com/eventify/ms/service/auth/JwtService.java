@@ -175,4 +175,13 @@ public class JwtService {
         return StringUtils.hasText(token) ? token : null;
     }
 
+    public String extractTokenFromString(String authHeader) {
+        if (!StringUtils.hasText(authHeader) || !authHeader.startsWith("Bearer ")) {
+            return null;
+        }
+
+        String token = authHeader.substring(7);
+        return StringUtils.hasText(token) ? token : null;
+    }
+
 }

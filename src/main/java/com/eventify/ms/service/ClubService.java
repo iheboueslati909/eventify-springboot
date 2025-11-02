@@ -70,7 +70,7 @@ public class ClubService {
     }
 
     @Transactional
-    public ClubResponse updateClub(UUID id, UpdateClubRequest request) {
+    public ClubResponse updateClub(UUID id, UpdateClubRequest request, java.util.UUID userId) {
         Club club = clubRepository.findByIdWithOwners(id)
                 .orElseThrow(() -> new NoSuchElementException("Club not found with id: " + id));
 
@@ -95,7 +95,12 @@ public class ClubService {
     }
 
     @Transactional
-    public void deleteClub(UUID id) {
+    public ClubResponse updateClub(UUID id, UpdateClubRequest request) {
+        return updateClub(id, request, null);
+    }
+
+    @Transactional
+    public void deleteClub(UUID id, java.util.UUID userId) {
         Club club = clubRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Club not found with id: " + id));
         
@@ -104,6 +109,11 @@ public class ClubService {
         }
         
         club.setDeleted(true);
+    }
+
+    @Transactional
+    public void deleteClub(UUID id) {
+        deleteClub(id, null);
     }
 
     private ClubResponse mapToResponse(Club club) {

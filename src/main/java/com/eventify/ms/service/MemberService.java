@@ -56,7 +56,7 @@ public class MemberService {
     }
 
     @Transactional
-    public MemberResponse updateMember(UUID id, UpdateMemberRequest request) {
+    public MemberResponse updateMember(UUID id, UpdateMemberRequest request, java.util.UUID userId) {
         Member member = memberRepository.findByIdWithRelationships(id)
                 .orElseThrow(() -> new NoSuchElementException("Member not found with id: " + id));
 
@@ -78,7 +78,12 @@ public class MemberService {
     }
 
     @Transactional
-    public void deleteMember(UUID id) {
+    public MemberResponse updateMember(UUID id, UpdateMemberRequest request) {
+        return updateMember(id, request, null);
+    }
+
+    @Transactional
+    public void deleteMember(UUID id, java.util.UUID userId) {
         Member member = memberRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Member not found with id: " + id));
 
@@ -87,6 +92,11 @@ public class MemberService {
         }
 
         member.setDeleted(true);
+    }
+
+    @Transactional
+    public void deleteMember(UUID id) {
+        deleteMember(id, null);
     }
 
     private MemberResponse mapToResponse(Member member) {

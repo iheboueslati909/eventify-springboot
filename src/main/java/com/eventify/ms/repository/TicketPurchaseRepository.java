@@ -19,4 +19,7 @@ public interface TicketPurchaseRepository extends JpaRepository<TicketPurchase, 
     
     @Query("SELECT COALESCE(SUM(tp.quantity), 0) FROM TicketPurchase tp WHERE tp.ticket.id = :ticketId AND tp.status != 'CANCELLED'")
     Integer getTotalPurchasedQuantityForTicket(@Param("ticketId") UUID ticketId);
+
+    @Query("SELECT COALESCE(SUM(tp.quantity), 0) FROM TicketPurchase tp WHERE tp.ticket.event.id = :eventId AND tp.status != 'CANCELLED'")
+    Integer getTotalPurchasedQuantityForEvent(@Param("eventId") UUID eventId);
 }

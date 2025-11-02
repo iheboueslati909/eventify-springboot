@@ -83,7 +83,7 @@ public class ArtistProfileService {
     }
 
     @Transactional
-    public ArtistProfileResponse updateArtistProfile(UUID id, UpdateArtistProfileRequest request) {
+    public ArtistProfileResponse updateArtistProfile(UUID id, UpdateArtistProfileRequest request, java.util.UUID userId) {
         ArtistProfile profile = artistProfileRepository.findByIdWithGenres(id)
                 .orElseThrow(() -> new NoSuchElementException("Artist profile not found with id: " + id));
 
@@ -103,8 +103,14 @@ public class ArtistProfileService {
         return mapToResponse(profile);
     }
 
+    // Backwards-compatible overloads (keep existing callers working)
     @Transactional
-    public void deleteArtistProfile(UUID id) {
+    public ArtistProfileResponse updateArtistProfile(UUID id, UpdateArtistProfileRequest request) {
+        return updateArtistProfile(id, request, null);
+    }
+
+    @Transactional
+    public void deleteArtistProfile(UUID id, java.util.UUID userId) {
         ArtistProfile profile = artistProfileRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Artist profile not found with id: " + id));
 
@@ -113,6 +119,11 @@ public class ArtistProfileService {
         }
 
         profile.setDeleted(true);
+    }
+
+    @Transactional
+    public void deleteArtistProfile(UUID id) {
+        deleteArtistProfile(id, null);
     }
 
     private ArtistProfileResponse mapToResponse(ArtistProfile profile) {

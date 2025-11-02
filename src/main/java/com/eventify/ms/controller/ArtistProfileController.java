@@ -4,6 +4,8 @@ import com.eventify.ms.dto.artist.CreateArtistProfileRequest;
 import com.eventify.ms.dto.artist.ArtistProfileResponse;
 import com.eventify.ms.dto.artist.UpdateArtistProfileRequest;
 import com.eventify.ms.service.ArtistProfileService;
+import com.eventify.ms.service.auth.JwtService;
+import com.eventify.ms.exception.InvalidTokenException;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,9 +22,11 @@ import java.util.UUID;
 public class ArtistProfileController {
 
     private final ArtistProfileService artistProfileService;
+    private final JwtService jwtService;
 
-    public ArtistProfileController(ArtistProfileService artistProfileService) {
+    public ArtistProfileController(ArtistProfileService artistProfileService, JwtService jwtService) {
         this.artistProfileService = artistProfileService;
+        this.jwtService = jwtService;
     }
 
     @PostMapping
@@ -51,13 +55,19 @@ public class ArtistProfileController {
     @PutMapping("/{id}")
     public ResponseEntity<ArtistProfileResponse> updateArtistProfile(
             @PathVariable UUID id,
-            @Valid @RequestBody UpdateArtistProfileRequest request) {
-        return ResponseEntity.ok(artistProfileService.updateArtistProfile(id, request));
+            @Valid @RequestBody UpdateArtistProfileRequest request,
+            @RequestHeader("Authorization") String authHeader) {
+        String token = jwtService.extractTokenFromString(authHeader);
+        UUID userId = jwtService.extractUserId(token).orElseThrow(() -> new InvalidTokenException("Invalid token"));
+        return ResponseEntity.ok(artistProfileService.updateArtistProfile(id, request, userId));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteArtistProfile(@PathVariable UUID id) {
-        artistProfileService.deleteArtistProfile(id);
+    public ResponseEntity<Void> deleteArtistProfile(@PathVariable UUID id,
+                                                    @RequestHeader("Authorization") String authHeader) {
+        String token = jwtService.extractTokenFromString(authHeader);
+        UUID userId = jwtService.extractUserId(token).orElseThrow(() -> new InvalidTokenException("Invalid token"));
+        artistProfileService.deleteArtistProfile(id, userId);
         return ResponseEntity.noContent().build();
     }
 }

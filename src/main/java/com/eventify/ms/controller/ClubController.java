@@ -2,6 +2,8 @@ package com.eventify.ms.controller;
 
 import com.eventify.ms.dto.club.*;
 import com.eventify.ms.service.ClubService;
+import com.eventify.ms.service.auth.JwtService;
+import com.eventify.ms.exception.InvalidTokenException;
 import jakarta.validation.Valid;
 
 import org.springframework.data.domain.Page;
@@ -18,9 +20,11 @@ import java.util.*;
 public class ClubController {
 
     private final ClubService clubService;
+    private final JwtService jwtService;
 
-    public ClubController(ClubService clubService) {
+    public ClubController(ClubService clubService, JwtService jwtService) {
         this.clubService = clubService;
+        this.jwtService = jwtService;
     }
 
     @PostMapping
@@ -44,14 +48,19 @@ public class ClubController {
     @PutMapping("/{id}")
     public ResponseEntity<ClubResponse> updateClub(
             @PathVariable UUID id,
-            @Valid @RequestBody UpdateClubRequest request
+            @Valid @RequestBody UpdateClubRequest request,
+            @RequestHeader("Authorization") String authHeader
     ) {
-        return ResponseEntity.ok(clubService.updateClub(id, request));
+        String token = jwtService.extractTokenFromString(authHeader);
+        UUID userId = jwtService.extractUserId(token).orElseThrow(() -> new InvalidTokenException("Invalid token"));
+        return ResponseEntity.ok(clubService.updateClub(id, request, userId));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteClub(@PathVariable UUID id) {
-        clubService.deleteClub(id);
+    public ResponseEntity<Void> deleteClub(@PathVariable UUID id, @RequestHeader("Authorization") String authHeader) {
+        String token = jwtService.extractTokenFromString(authHeader);
+        UUID userId = jwtService.extractUserId(token).orElseThrow(() -> new InvalidTokenException("Invalid token"));
+        clubService.deleteClub(id, userId);
         return ResponseEntity.noContent().build();
     }
 }

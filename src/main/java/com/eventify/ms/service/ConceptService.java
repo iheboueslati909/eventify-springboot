@@ -63,7 +63,7 @@ public class ConceptService {
     }
 
     @Transactional
-    public ConceptResponse updateConcept(UUID id, UpdateConceptRequest request) {
+    public ConceptResponse updateConcept(UUID id, UpdateConceptRequest request, java.util.UUID userId) {
         Concept concept = conceptRepository.findByIdWithGenres(id)
                 .orElseThrow(() -> new NoSuchElementException("Concept not found with id: " + id));
 
@@ -79,7 +79,12 @@ public class ConceptService {
     }
 
     @Transactional
-    public void deleteConcept(UUID id) {
+    public ConceptResponse updateConcept(UUID id, UpdateConceptRequest request) {
+        return updateConcept(id, request, null);
+    }
+
+    @Transactional
+    public void deleteConcept(UUID id, java.util.UUID userId) {
         Concept concept = conceptRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Concept not found with id: " + id));
 
@@ -88,6 +93,11 @@ public class ConceptService {
         }
 
         concept.setDeleted(true);
+    }
+
+    @Transactional
+    public void deleteConcept(UUID id) {
+        deleteConcept(id, null);
     }
 
     private ConceptResponse mapToResponse(Concept concept) {

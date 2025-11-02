@@ -3,6 +3,8 @@ package com.eventify.ms.controller;
 import com.eventify.ms.dto.member.MemberResponse;
 import com.eventify.ms.dto.member.UpdateMemberRequest;
 import com.eventify.ms.service.MemberService;
+import com.eventify.ms.service.auth.JwtService;
+import com.eventify.ms.exception.InvalidTokenException;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,9 +21,11 @@ import java.util.UUID;
 public class MemberController {
 
     private final MemberService memberService;
+    private final JwtService jwtService;
 
-    public MemberController(MemberService memberService) {
+    public MemberController(MemberService memberService, JwtService jwtService) {
         this.memberService = memberService;
+        this.jwtService = jwtService;
     }
 
     @GetMapping
@@ -45,13 +49,18 @@ public class MemberController {
     @PutMapping("/{id}")
     public ResponseEntity<MemberResponse> updateMember(
             @PathVariable UUID id,
-            @Valid @RequestBody UpdateMemberRequest request) {
-        return ResponseEntity.ok(memberService.updateMember(id, request));
+            @Valid @RequestBody UpdateMemberRequest request,
+            @RequestHeader("Authorization") String authHeader) {
+        String token = jwtService.extractTokenFromString(authHeader);
+        UUID userId = jwtService.extractUserId(token).orElseThrow(() -> new InvalidTokenException("Invalid token"));
+        return ResponseEntity.ok(memberService.updateMember(id, request, userId));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteMember(@PathVariable UUID id) {
-        memberService.deleteMember(id);
+    public ResponseEntity<Void> deleteMember(@PathVariable UUID id, @RequestHeader("Authorization") String authHeader) {
+        String token = jwtService.extractTokenFromString(authHeader);
+        UUID userId = jwtService.extractUserId(token).orElseThrow(() -> new InvalidTokenException("Invalid token"));
+        memberService.deleteMember(id, userId);
         return ResponseEntity.noContent().build();
     }
 }

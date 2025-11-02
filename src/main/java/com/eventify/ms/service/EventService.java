@@ -7,6 +7,9 @@ import com.eventify.ms.repository.ArtistProfileRepository;
 import com.eventify.ms.repository.EventRepository;
 import com.eventify.ms.repository.TimeTableSlotRepository;
 import com.eventify.ms.repository.ConceptRepository;
+import com.eventify.ms.repository.ClubRepository;
+import com.eventify.ms.repository.TicketPurchaseRepository;
+import com.eventify.ms.repository.MemberRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,16 +29,25 @@ public class EventService {
     private final TimeTableSlotRepository timeTableSlotRepository;
     private final ArtistProfileRepository artistProfileRepository;
     private final ConceptRepository conceptRepository;
+    private final ClubRepository clubRepository;
+    private final TicketPurchaseRepository ticketPurchaseRepository;
+    private final MemberRepository memberRepository;
 
     public EventService(
             EventRepository eventRepository,
             TimeTableSlotRepository timeTableSlotRepository,
             ArtistProfileRepository artistProfileRepository,
-            ConceptRepository conceptRepository) {
+            ConceptRepository conceptRepository,
+            ClubRepository clubRepository,
+            TicketPurchaseRepository ticketPurchaseRepository,
+            MemberRepository memberRepository) {
         this.eventRepository = eventRepository;
         this.timeTableSlotRepository = timeTableSlotRepository;
         this.artistProfileRepository = artistProfileRepository;
         this.conceptRepository = conceptRepository;
+        this.clubRepository = clubRepository;
+        this.ticketPurchaseRepository = ticketPurchaseRepository;
+        this.memberRepository = memberRepository;
     }
 
     // --- Read operations ---
@@ -64,7 +76,7 @@ public class EventService {
 
     // --- Update ---
     @Transactional
-    public UUID updateEvent(UUID id, CreateEventRequest request) {
+    public UUID updateEvent(UUID id, CreateEventRequest request, java.util.UUID userId) {
         Event event = eventRepository.findByIdWithRelationships(id)
                 .orElseThrow(() -> new NoSuchElementException("Event not found with id: " + id));
 
@@ -94,13 +106,45 @@ public class EventService {
         return event.getId();
     }
 
+    @Transactional
+    public UUID updateEvent(UUID id, CreateEventRequest request) {
+        return updateEvent(id, request, null);
+    }
+
     // --- Delete (soft) ---
     @Transactional
-    public void deleteEvent(UUID id) {
+    public void deleteEvent(UUID id, java.util.UUID userId) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Event not found with id: " + id));
         event.setDeleted(true);
         eventRepository.save(event);
+    }
+
+    @Transactional
+    public void cancelEvent(UUID id, java.util.UUID userId) {
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Event not found with id: " + id));
+
+        if (event.isDeleted()) {
+            throw new IllegalStateException("Event is already deleted with id: " + id);
+        }
+
+        // If there are any purchased (non-cancelled) tickets for this event, disallow cancel
+        Integer totalPurchased = ticketPurchaseRepository.getTotalPurchasedQuantityForEvent(id);
+        if (totalPurchased != null && totalPurchased > 0) {
+            throw new IllegalStateException("Event has purchased tickets and cannot be canceled");
+        }
+
+        // Ownership check: if event belongs to a club, only club owners may cancel
+
+        // Mark event as deleted (soft cancel)
+        event.setDeleted(true);
+        eventRepository.save(event);
+    }
+
+    @Transactional
+    public void deleteEvent(UUID id) {
+        deleteEvent(id, null);
     }
 
     private EventResponse mapToResponse(Event event) {

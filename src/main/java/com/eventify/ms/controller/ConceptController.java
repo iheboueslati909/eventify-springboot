@@ -4,6 +4,8 @@ import com.eventify.ms.dto.concept.CreateConceptRequest;
 import com.eventify.ms.dto.concept.ConceptResponse;
 import com.eventify.ms.dto.concept.UpdateConceptRequest;
 import com.eventify.ms.service.ConceptService;
+import com.eventify.ms.service.auth.JwtService;
+import com.eventify.ms.exception.InvalidTokenException;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,9 +22,11 @@ import java.util.UUID;
 public class ConceptController {
 
     private final ConceptService conceptService;
+    private final JwtService jwtService;
 
-    public ConceptController(ConceptService conceptService) {
+    public ConceptController(ConceptService conceptService, JwtService jwtService) {
         this.conceptService = conceptService;
+        this.jwtService = jwtService;
     }
 
     @PostMapping
@@ -44,13 +48,18 @@ public class ConceptController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ConceptResponse> updateConcept(@PathVariable UUID id, @Valid @RequestBody UpdateConceptRequest request) {
-        return ResponseEntity.ok(conceptService.updateConcept(id, request));
+    public ResponseEntity<ConceptResponse> updateConcept(@PathVariable UUID id, @Valid @RequestBody UpdateConceptRequest request,
+                                                          @RequestHeader("Authorization") String authHeader) {
+        String token = jwtService.extractTokenFromString(authHeader);
+        UUID userId = jwtService.extractUserId(token).orElseThrow(() -> new InvalidTokenException("Invalid token"));
+        return ResponseEntity.ok(conceptService.updateConcept(id, request, userId));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteConcept(@PathVariable UUID id) {
-        conceptService.deleteConcept(id);
+    public ResponseEntity<Void> deleteConcept(@PathVariable UUID id, @RequestHeader("Authorization") String authHeader) {
+        String token = jwtService.extractTokenFromString(authHeader);
+        UUID userId = jwtService.extractUserId(token).orElseThrow(() -> new InvalidTokenException("Invalid token"));
+        conceptService.deleteConcept(id, userId);
         return ResponseEntity.noContent().build();
     }
 }
