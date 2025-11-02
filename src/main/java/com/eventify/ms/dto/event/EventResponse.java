@@ -8,6 +8,7 @@ import java.util.UUID;
 
 public record EventResponse(
     UUID id,
+    UUID creatorId,
     String title,
     String description,
     OffsetDateTime startDate,

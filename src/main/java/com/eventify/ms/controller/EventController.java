@@ -28,8 +28,11 @@ public class EventController {
     }
 
     @PostMapping
-    public ResponseEntity<Map<String, UUID>> createEvent(@Valid @RequestBody CreateEventRequest request) {
-        UUID eventId = eventService.createEvent(request);
+    public ResponseEntity<Map<String, UUID>> createEvent(@Valid @RequestBody CreateEventRequest request
+        , @RequestHeader("Authorization") String authHeader) {
+        String token = jwtService.extractTokenFromString(authHeader);
+        UUID userId = jwtService.extractUserId(token).orElseThrow(() -> new InvalidTokenException("Invalid token"));
+        UUID eventId = eventService.createEvent(request, userId);
         return ResponseEntity.status(201).body(Map.of("id", eventId));
     }
 

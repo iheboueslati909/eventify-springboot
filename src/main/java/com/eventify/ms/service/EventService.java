@@ -96,7 +96,9 @@ public class EventService {
         event.setLocation(request.location());
         event.setType(request.type());
         event.setConceptId(request.conceptId());
-
+        event.setStatus(EventStatus.PUBLISHED);
+        event.setCreator(memberRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("Member not found with id: " + userId)));
         // Replace timetables: clear and create new ones
         event.getTimetables().clear();
         List<TimeTable> timetables = createTimeTables(request, event);
@@ -129,13 +131,22 @@ public class EventService {
             throw new IllegalStateException("Event is already deleted with id: " + id);
         }
 
-        // If there are any purchased (non-cancelled) tickets for this event, disallow cancel
+        // If there are any purchased (non-cancelled) tickets for this event, disallow
+        // cancel
         Integer totalPurchased = ticketPurchaseRepository.getTotalPurchasedQuantityForEvent(id);
         if (totalPurchased != null && totalPurchased > 0) {
             throw new IllegalStateException("Event has purchased tickets and cannot be canceled");
         }
 
         // Ownership check: if event belongs to a club, only club owners may cancel
+        if (event.getCreator().getId() != null) {
+            UUID creatorId = event.getCreator().getId();
+            if (!creatorId.equals(userId)) {
+                throw new IllegalStateException("Only the event creator can cancel this event");
+            }
+        } else {
+            throw new IllegalStateException("Event has no creator assigned, cannot verify ownership");
+        }
 
         // Mark event as deleted (soft cancel)
         event.setDeleted(true);
@@ -156,6 +167,7 @@ public class EventService {
                 .toList();
         return new EventResponse(
                 event.getId(),
+                event.getCreator() != null ? event.getCreator().getId() : null,
                 event.getTitle(),
                 event.getDescription(),
                 event.getStartDate(),
@@ -168,55 +180,59 @@ public class EventService {
                 event.getCreatedAt(),
                 event.getClubId(),
                 ttIds,
-                ticketIds
-        );
-    }@Transactional
-public UUID createEvent(CreateEventRequest request) {
-    // Validate concept exists
-    if (!conceptRepository.existsById(request.conceptId())) {
-        throw new NoSuchElementException("Concept not found with id: " + request.conceptId());
+                ticketIds);
     }
 
-    // Validate date range
-    validateDateRange(request.startDate(), request.endDate());
+    @Transactional
+    public UUID createEvent(CreateEventRequest request, UUID userId) {
+        // Validate concept exists
+        if (!conceptRepository.existsById(request.conceptId())) {
+            throw new NoSuchElementException("Concept not found with id: " + request.conceptId());
+        }
 
-    // Create event
-    Event event = Event.builder()
-            .title(request.title())
-            .description(request.description())
-            .startDate(request.startDate())
-            .endDate(request.endDate())
-            .location(request.location())
-            .type(request.type())
-            .conceptId(request.conceptId())
-            .status(EventStatus.PUBLISHED)
-            .build();
+        Member creator = memberRepository.findByUserIdAndIsDeletedFalse(userId)
+                .orElseThrow(() -> new NoSuchElementException("Creator not found with id: " + userId));
 
-    // Process timetables and validate artist availability
-    List<TimeTable> timetables;
-    try {
-        timetables = createTimeTables(request, event); // <- assign outside
-    } catch (IllegalStateException e) {
-        throw e; // propagate known validation errors
-    } catch (Exception e) {
-        throw new RuntimeException("Failed to create event due to: ", e);
+        // Validate date range
+        validateDateRange(request.startDate(), request.endDate());
+
+        // Create event
+        Event event = Event.builder()
+                .title(request.title())
+                .creator(creator)
+                .description(request.description())
+                .startDate(request.startDate())
+                .endDate(request.endDate())
+                .location(request.location())
+                .type(request.type())
+                .conceptId(request.conceptId())
+                .status(EventStatus.PUBLISHED)
+                .build();
+
+        // Process timetables and validate artist availability
+        List<TimeTable> timetables;
+        try {
+            timetables = createTimeTables(request, event); // <- assign outside
+        } catch (IllegalStateException e) {
+            throw e; // propagate known validation errors
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create event due to: ", e);
+        }
+
+        // Link timetables to event
+        event.setTimetables(timetables);
+
+        // Persist event + cascading timetables & slots
+        event = eventRepository.save(event);
+
+        return event.getId();
     }
-
-    // Link timetables to event
-    event.setTimetables(timetables);
-
-    // Persist event + cascading timetables & slots
-    event = eventRepository.save(event);
-
-    return event.getId();
-}
-
 
     private void validateDateRange(OffsetDateTime startDate, OffsetDateTime endDate) {
         if (startDate.isAfter(endDate)) {
             throw new IllegalArgumentException("Start date must be before end date");
         }
-        
+
         if (startDate.isBefore(OffsetDateTime.now())) {
             throw new IllegalArgumentException("Start date cannot be in the past");
         }
@@ -241,47 +257,44 @@ public UUID createEvent(CreateEventRequest request) {
     private List<TimeTableSlot> createTimeTableSlots(
             List<CreateEventRequest.TimeTableSlotRequest> slotRequests,
             TimeTable timeTable) {
-        
+
         // Collect all unique artists and validate their existence upfront
         Set<UUID> allArtistIds = slotRequests.stream()
                 .flatMap(slot -> slot.artistIds().stream())
                 .collect(Collectors.toSet());
-                
+
         // Batch fetch all artist profiles
         Map<UUID, ArtistProfile> artistProfiles = artistProfileRepository.findAllById(allArtistIds)
                 .stream()
                 .collect(Collectors.toMap(ArtistProfile::getId, Function.identity()));
-                
+
         // Check for missing artists
         if (allArtistIds.size() != artistProfiles.size()) {
             throw new NoSuchElementException("Artist profiles not foun");
         }
-        
+
         // Group slots by time range to optimize conflict checking
         Map<TimeRange, List<CreateEventRequest.TimeTableSlotRequest>> slotsByTimeRange = slotRequests.stream()
-                .collect(Collectors.groupingBy(slot -> 
-                    new TimeRange(slot.startTime(), slot.endTime())));
-                    
+                .collect(Collectors.groupingBy(slot -> new TimeRange(slot.startTime(), slot.endTime())));
+
         // Check conflicts for each time range
         for (Map.Entry<TimeRange, List<CreateEventRequest.TimeTableSlotRequest>> entry : slotsByTimeRange.entrySet()) {
             TimeRange timeRange = entry.getKey();
             Set<UUID> artistsInTimeRange = entry.getValue().stream()
                     .flatMap(slot -> slot.artistIds().stream())
                     .collect(Collectors.toSet());
-                    
+
             // Batch check for conflicts
             Set<UUID> conflictingArtists = timeTableSlotRepository.findArtistsWithConflicts(
-                artistsInTimeRange,
-                timeRange.start(),
-                timeRange.end()
-            );
-            
+                    artistsInTimeRange,
+                    timeRange.start(),
+                    timeRange.end());
+
             if (!conflictingArtists.isEmpty()) {
                 List<ArtistTimeConflict> conflicts = timeTableSlotRepository.findDetailedConflictsForArtists(
-                    conflictingArtists,
-                    timeRange.start(),
-                    timeRange.end()
-                );
+                        conflictingArtists,
+                        timeRange.start(),
+                        timeRange.end());
                 throw new IllegalStateException(formatDetailedConflicts(conflicts));
             }
         }
@@ -303,19 +316,20 @@ public UUID createEvent(CreateEventRequest request) {
                 })
                 .collect(Collectors.toList());
     }
-    
-    private record TimeRange(OffsetDateTime start, OffsetDateTime end) {}
-    
+
+    private record TimeRange(OffsetDateTime start, OffsetDateTime end) {
+    }
+
     private String formatDetailedConflicts(List<ArtistTimeConflict> conflicts) {
         return conflicts.stream()
                 .map(conflict -> String.format(
-                    "Artist '%s' has a conflict: already scheduled at '%s' on stage '%s' " +
-                    "during %s - %s",
-                    conflict.artistName(),
-                    conflict.eventTitle(),
-                    conflict.stageName(),
-                    conflict.startTime(),
-                    conflict.endTime()))
+                        "Artist '%s' has a conflict: already scheduled at '%s' on stage '%s' " +
+                                "during %s - %s",
+                        conflict.artistName(),
+                        conflict.eventTitle(),
+                        conflict.stageName(),
+                        conflict.startTime(),
+                        conflict.endTime()))
                 .collect(Collectors.joining("\n"));
     }
 }
